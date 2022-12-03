@@ -19,9 +19,9 @@
  const HIT_SLOP = { top: 16, left: 16, bottom: 16, right: 16 };
 
  const updateLocation = (setLocationZoom: (LocationZoomType) => void) => () => {
-  const x = -Math.round(Math.random() * 50)
-  const y = -Math.round(Math.random() * 50)
-  const zoom = Math.round(Math.random() * 3) + 1
+  const x = -Math.round(Math.random() * 500)
+  const y = -Math.round(Math.random() * 500)
+  const zoom = 2
 
   setLocationZoom({ x, y, zoom })
  }

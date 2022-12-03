@@ -16,6 +16,8 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   NativeMethodsMixin,
+  Image,
+  View,
 } from "react-native";
 
 import useImageDimensions from "../../hooks/useImageDimensions";
@@ -24,6 +26,7 @@ import usePanResponder from "../../hooks/usePanResponder";
 import { getImageStyles, getImageTransform } from "../../utils";
 import { ImageSource } from "../../@types";
 import { ImageLoading } from "./ImageLoading";
+import SvgOverlay from "../SvgOverlay";
 
 const SWIPE_CLOSE_OFFSET = 75;
 const SWIPE_CLOSE_VELOCITY = 1.75;
@@ -32,7 +35,7 @@ const SCREEN_WIDTH = SCREEN.width;
 const SCREEN_HEIGHT = SCREEN.height;
 
 type Props = {
-  imageSrc: ImageSource;
+  image: { src: ImageSource, width: number, height: number };
   onRequestClose: () => void;
   onZoom: (isZoomed: boolean, scaleZoom: number) => void;
   onLongPress: (image: ImageSource) => void;
@@ -45,7 +48,7 @@ type Props = {
 };
 
 const ImageItem = ({
-  imageSrc,
+  image,
   onZoom,
   onRequestClose,
   onLongPress,
@@ -57,7 +60,13 @@ const ImageItem = ({
   doubleTapToZoomEnabled = true,
 }: Props) => {
   const imageContainer = useRef<ScrollView & NativeMethodsMixin>(null);
-  const imageDimensions = useImageDimensions(imageSrc);
+  const imageDimensions = {
+    width: image.width,
+    height: image.height,
+  };
+  const imageSrc = image.src
+  console.log(`image: ${JSON.stringify({ imageDimensions, imageSrc }, null, 3)}`)
+  const theSvg = <SvgOverlay width={imageDimensions.width} height={imageDimensions.height} />
 
   const [origTranslate, origScale] = getImageTransform({
     image: imageDimensions,
@@ -153,13 +162,23 @@ const ImageItem = ({
         onScrollEndDrag,
       })}
     >
-      <Animated.Image
-        {...panHandlers}
-        source={imageSrc}
-        style={imageStylesWithOpacity}
-        onLoad={onLoaded}
-      />
       {(!isLoaded || !imageDimensions) && <ImageLoading />}
+      <Animated.View
+         {...panHandlers}
+         style={{
+           ...imageStylesWithOpacity,
+           ...styles.overlayContainer,
+         }}
+       >
+         {(isLoaded && imageDimensions) && (
+          <View style={styles.overlay}>{theSvg}</View>
+         )}
+         <Animated.Image
+           source={imageSrc}
+           style={styles.baseImage}
+           onLoad={onLoaded}
+         />
+       </Animated.View>
     </ScrollView>
   );
 };
@@ -172,6 +191,20 @@ const styles = StyleSheet.create({
   imageScrollContainer: {
     height: SCREEN_HEIGHT * 2,
   },
+  overlayContainer: {
+    position: 'relative'
+  },
+  overlay: {
+    position: 'absolute',
+    zIndex: 100,
+  },
+  baseImage: {
+    left: 0,
+    top: 0,
+    zIndex: 99,
+    width: 500,
+    height: 250
+  }
 });
 
 export default React.memo(ImageItem);

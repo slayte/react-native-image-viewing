@@ -13,45 +13,33 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  Text,
-  View,
 } from "react-native";
-import get from "lodash/get";
-import memoize from "lodash/memoize";
-
 import ImageViewing from "../src/ImageViewing";
 import ImageList from "./components/ImageList";
-import ImageHeader from "./components/ImageHeader";
-import ImageFooter from "./components/ImageFooter";
 import LocationSelect from './components/LocationSelect'
-
-import { architecture } from "./data/architecture";
-import { travel } from "./data/travel";
-import { city } from "./data/city";
-import { food } from "./data/food";
-
-import { ImageSource } from "../src/@types";
 
 export default function App() {
   const [currentImageIndex, setImageIndex] = useState(0);
-  const [images, setImages] = useState(architecture);
+  const factor = 3
+  const images = [
+    {
+      thumbnail:
+        "https://images.unsplash.com/photo-1481026469463-66327c86e544?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1424&q=80",
+      src: require("./data/floorplan.jpg"),
+      width: 212 * factor,
+      height: 140 * factor,
+    },
+  ];
   const [isVisible, setIsVisible] = useState(false);
   const [locationZoom, setLocationZoom] = useState({ x: 0, y: 0, zoom: 1 })
 
   const onSelect = (images, index) => {
     setImageIndex(index);
-    setImages(images);
+    // setImages(images);
     setIsVisible(true);
   };
 
   const onRequestClose = () => setIsVisible(false);
-  const getImageSource = memoize((images): ImageSource[] =>
-    images.map((image) =>
-      typeof image.original === "number"
-        ? image.original
-        : { uri: image.original as string }
-    )
-  );
   const onLongPress = (image) => {
     Alert.alert("Long Pressed", image.uri);
   };
@@ -59,20 +47,12 @@ export default function App() {
   return (
     <SafeAreaView style={styles.root}>
       <ImageList
-        images={travel.map((image) => image.thumbnail)}
-        onPress={(index) => onSelect(travel, index)}
-        shift={0.25}
-      />
-      <ImageList
-        images={architecture.map((image) => image.thumbnail)}
-        onPress={(index) => onSelect(architecture, index)}
+        images={images.map((image) => image.thumbnail)}
+        onPress={(index) => onSelect(images, index)}
         shift={0.75}
       />
-      <View style={styles.about}>
-        <Text style={styles.name}>[ react-native-image-viewing ]</Text>
-      </View>
       <ImageViewing
-        images={getImageSource(images)}
+        images={images}
         imageIndex={currentImageIndex}
         HeaderComponent={({ imageIndex }) => (
           <LocationSelect
@@ -89,16 +69,6 @@ export default function App() {
         visible={isVisible}
         onRequestClose={onRequestClose}
         onLongPress={onLongPress}
-      />
-      <ImageList
-        images={food.map((image) => image.thumbnail)}
-        onPress={(index) => onSelect(food, index)}
-        shift={0.5}
-      />
-      <ImageList
-        images={city.map((image) => image.thumbnail)}
-        onPress={(index) => onSelect(city, index)}
-        shift={0.75}
       />
     </SafeAreaView>
   );
