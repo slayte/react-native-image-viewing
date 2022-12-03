@@ -34,11 +34,14 @@ const SCREEN_HEIGHT = SCREEN.height;
 type Props = {
   imageSrc: ImageSource;
   onRequestClose: () => void;
-  onZoom: (isZoomed: boolean) => void;
+  onZoom: (isZoomed: boolean, scaleZoom: number) => void;
   onLongPress: (image: ImageSource) => void;
   delayLongPress: number;
   swipeToCloseEnabled?: boolean;
   doubleTapToZoomEnabled?: boolean;
+  zoomLevel?: number;
+  xOffset?: number;
+  yOffset?: number;
 };
 
 const ImageItem = ({
@@ -47,19 +50,31 @@ const ImageItem = ({
   onRequestClose,
   onLongPress,
   delayLongPress,
+  zoomLevel,
+  xOffset,
+  yOffset,
   swipeToCloseEnabled = true,
   doubleTapToZoomEnabled = true,
 }: Props) => {
   const imageContainer = useRef<ScrollView & NativeMethodsMixin>(null);
   const imageDimensions = useImageDimensions(imageSrc);
-  const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
+
+  const [origTranslate, origScale] = getImageTransform({
+    image: imageDimensions,
+    screen: SCREEN,
+    xOffset,
+    yOffset,
+  });
+
   const scrollValueY = new Animated.Value(0);
   const [isLoaded, setLoadEnd] = useState(false);
 
   const onLoaded = useCallback(() => setLoadEnd(true), []);
   const onZoomPerformed = useCallback(
-    (isZoomed: boolean) => {
-      onZoom(isZoomed);
+    (isZoomed: boolean, scaleZoom: number) => {
+
+      console.log(`ImageItem onZoomPerformed: ${scaleZoom || 0}`)
+      onZoom(isZoomed, scaleZoom);
       if (imageContainer?.current) {
         imageContainer.current.setNativeProps({
           scrollEnabled: !isZoomed,
@@ -73,9 +88,16 @@ const ImageItem = ({
     onLongPress(imageSrc);
   }, [imageSrc, onLongPress]);
 
+  const initialScale = (origScale || 1) * (zoomLevel || 1)
+  const initialTranslate = origTranslate || { x: 0, y: 0 }
+
+  console.log(`Zoom x=${initialTranslate.x} y=${initialTranslate.y} zoom=${initialScale}`)
+
   const [panHandlers, scaleValue, translateValue] = usePanResponder({
-    initialScale: scale || 1,
-    initialTranslate: translate || { x: 0, y: 0 },
+    initialScale,
+    initialTranslate,
+    origScale: origScale || 1,
+    origTranslate: origTranslate || { x: 0, y: 0 },
     onZoom: onZoomPerformed,
     doubleTapToZoomEnabled,
     onLongPress: onLongPressHandler,

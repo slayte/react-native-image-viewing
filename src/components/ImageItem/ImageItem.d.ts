@@ -13,7 +13,10 @@ import { ImageSource } from "../../@types";
 declare type Props = {
   imageSrc: ImageSource;
   onRequestClose: () => void;
-  onZoom: (isZoomed: boolean) => void;
+  zoomLevel?: number;
+  xOffset?: number;
+  yOffset?: number;
+  onZoom: (isZoomed: boolean, scaleZoom: number) => void;
   onLongPress: (image: ImageSource) => void;
   delayLongPress: number;
   swipeToCloseEnabled?: boolean;
@@ -26,6 +29,9 @@ declare const _default: React.MemoExoticComponent<({
   onRequestClose,
   onLongPress,
   delayLongPress,
+  zoomLevel,
+  xOffset,
+  yOffset,
   swipeToCloseEnabled,
 }: Props) => JSX.Element>;
 

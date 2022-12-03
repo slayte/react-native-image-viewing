@@ -34,15 +34,19 @@ const DOUBLE_TAP_DELAY = 300;
 const OUT_BOUND_MULTIPLIER = 0.75;
 
 type Props = {
+  origScale: number;
+  origTranslate: Position;
   initialScale: number;
   initialTranslate: Position;
-  onZoom: (isZoomed: boolean) => void;
+  onZoom: (isZoomed: boolean, zoomScale: number) => void;
   doubleTapToZoomEnabled: boolean;
   onLongPress: () => void;
   delayLongPress: number;
 };
 
 const usePanResponder = ({
+  origScale,
+  origTranslate,
   initialScale,
   initialTranslate,
   onZoom,
@@ -67,7 +71,7 @@ const usePanResponder = ({
   const translateValue = new Animated.ValueXY(initialTranslate);
 
   const imageDimensions = getImageDimensionsByTranslate(
-    initialTranslate,
+    origTranslate,
     SCREEN
   );
 
@@ -78,9 +82,9 @@ const usePanResponder = ({
     };
     const translateDelta = getImageTranslate(scaledImageDimensions, SCREEN);
 
-    const left = initialTranslate.x - translateDelta.x;
+    const left = origTranslate.x - translateDelta.x;
     const right = left - (scaledImageDimensions.width - SCREEN.width);
-    const top = initialTranslate.y - translateDelta.y;
+    const top = origTranslate.y - translateDelta.y;
     const bottom = top - (scaledImageDimensions.height - SCREEN.height);
 
     return [top, left, bottom, right];
@@ -113,7 +117,7 @@ const usePanResponder = ({
   useEffect(() => {
     scaleValue.addListener(({ value }) => {
       if (typeof onZoom === "function") {
-        onZoom(value !== initialScale);
+        onZoom(value !== origScale, value);
       }
     });
 
@@ -152,25 +156,25 @@ const usePanResponder = ({
       );
 
       if (doubleTapToZoomEnabled && isDoubleTapPerformed) {
-        const isScaled = currentTranslate.x !== initialTranslate.x; // currentScale !== initialScale;
+        const isScaled = currentTranslate.x !== origTranslate.x; // currentScale !== initialScale;
         const { pageX: touchX, pageY: touchY } = event.nativeEvent.touches[0];
         const targetScale = SCALE_MAX;
-        const nextScale = isScaled ? initialScale : targetScale;
+        const nextScale = isScaled ? origScale : targetScale;
         const nextTranslate = isScaled
-          ? initialTranslate
+          ? origTranslate
           : getTranslateInBounds(
               {
                 x:
-                  initialTranslate.x +
+                  origTranslate.x +
                   (SCREEN_WIDTH / 2 - touchX) * (targetScale / currentScale),
                 y:
-                  initialTranslate.y +
+                  origTranslate.y +
                   (SCREEN_HEIGHT / 2 - touchY) * (targetScale / currentScale),
               },
               targetScale
             );
 
-        onZoom(!isScaled);
+        onZoom(!isScaled, scaleValue);
 
         Animated.parallel(
           [
@@ -241,31 +245,31 @@ const usePanResponder = ({
         let nextScale = (currentDistance / initialDistance) * currentScale;
 
         /**
-         * In case image is scaling smaller than initial size ->
+         * In case image is scaling smaller than orig size ->
          * slow down this transition by applying OUT_BOUND_MULTIPLIER
          */
-        if (nextScale < initialScale) {
+        if (nextScale < origScale) {
           nextScale =
-            nextScale + (initialScale - nextScale) * OUT_BOUND_MULTIPLIER;
+            nextScale + (origScale - nextScale) * OUT_BOUND_MULTIPLIER;
         }
 
         /**
-         * In case image is scaling down -> move it in direction of initial position
+         * In case image is scaling down -> move it in direction of orig position
          */
-        if (currentScale > initialScale && currentScale > nextScale) {
-          const k = (currentScale - initialScale) / (currentScale - nextScale);
+        if (currentScale > origScale && currentScale > nextScale) {
+          const k = (currentScale - origScale) / (currentScale - nextScale);
 
           const nextTranslateX =
-            nextScale < initialScale
-              ? initialTranslate.x
+            nextScale < origScale
+              ? origTranslate.x
               : currentTranslate.x -
-                (currentTranslate.x - initialTranslate.x) / k;
+                (currentTranslate.x - origTranslate.x) / k;
 
           const nextTranslateY =
-            nextScale < initialScale
-              ? initialTranslate.y
+            nextScale < origScale
+              ? origTranslate.y
               : currentTranslate.y -
-                (currentTranslate.y - initialTranslate.y) / k;
+                (currentTranslate.y - origTranslate.y) / k;
 
           translateValue.x.setValue(nextTranslateX);
           translateValue.y.setValue(nextTranslateY);
@@ -332,8 +336,8 @@ const usePanResponder = ({
       }
 
       if (tmpScale > 0) {
-        if (tmpScale < initialScale || tmpScale > SCALE_MAX) {
-          tmpScale = tmpScale < initialScale ? initialScale : SCALE_MAX;
+        if (tmpScale < origScale || tmpScale > SCALE_MAX) {
+          tmpScale = tmpScale < origScale ? origScale : SCALE_MAX;
           Animated.timing(scaleValue, {
             toValue: tmpScale,
             duration: 100,

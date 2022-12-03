@@ -23,6 +23,7 @@ import ImageViewing from "../src/ImageViewing";
 import ImageList from "./components/ImageList";
 import ImageHeader from "./components/ImageHeader";
 import ImageFooter from "./components/ImageFooter";
+import LocationSelect from './components/LocationSelect'
 
 import { architecture } from "./data/architecture";
 import { travel } from "./data/travel";
@@ -35,6 +36,7 @@ export default function App() {
   const [currentImageIndex, setImageIndex] = useState(0);
   const [images, setImages] = useState(architecture);
   const [isVisible, setIsVisible] = useState(false);
+  const [locationZoom, setLocationZoom] = useState({ x: 0, y: 0, zoom: 1 })
 
   const onSelect = (images, index) => {
     setImageIndex(index);
@@ -72,23 +74,21 @@ export default function App() {
       <ImageViewing
         images={getImageSource(images)}
         imageIndex={currentImageIndex}
+        HeaderComponent={({ imageIndex }) => (
+          <LocationSelect
+            onRequestClose={onRequestClose}
+            image={images[imageIndex]}
+            locationZoom={locationZoom}
+            setLocationZoom={setLocationZoom}
+          />
+        )}
+        zoomLevel={locationZoom.zoom}
+        xOffset={locationZoom.x}
+        yOffset={locationZoom.y}
         presentationStyle="overFullScreen"
         visible={isVisible}
         onRequestClose={onRequestClose}
         onLongPress={onLongPress}
-        HeaderComponent={
-          images === travel
-            ? ({ imageIndex }) => {
-                const title = get(images, `${imageIndex}.title`);
-                return (
-                  <ImageHeader title={title} onRequestClose={onRequestClose} />
-                );
-              }
-            : undefined
-        }
-        FooterComponent={({ imageIndex }) => (
-          <ImageFooter imageIndex={imageIndex} imagesCount={images.length} />
-        )}
       />
       <ImageList
         images={food.map((image) => image.thumbnail)}

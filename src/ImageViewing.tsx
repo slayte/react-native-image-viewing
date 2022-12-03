@@ -38,6 +38,9 @@ type Props = {
   animationType?: ModalProps["animationType"];
   backgroundColor?: string;
   swipeToCloseEnabled?: boolean;
+  zoomLevel?: number;
+  xOffset?: number;
+  yOffset?: number;
   doubleTapToZoomEnabled?: boolean;
   delayLongPress?: number;
   HeaderComponent?: ComponentType<{ imageIndex: number }>;
@@ -55,6 +58,9 @@ function ImageViewing({
   keyExtractor,
   imageIndex,
   visible,
+  zoomLevel,
+  xOffset,
+  yOffset,
   onRequestClose,
   onLongPress = () => {},
   onImageIndexChange,
@@ -80,7 +86,7 @@ function ImageViewing({
   }, [currentImageIndex]);
 
   const onZoom = useCallback(
-    (isScaled: boolean) => {
+    (isScaled: boolean, scaleZoom: number) => {
       // @ts-ignore
       imageList?.current?.setNativeProps({ scrollEnabled: !isScaled });
       toggleBarsVisible(!isScaled);
@@ -135,6 +141,9 @@ function ImageViewing({
             <ImageItem
               onZoom={onZoom}
               imageSrc={imageSrc}
+              zoomLevel={zoomLevel}
+              xOffset={xOffset}
+              yOffset={yOffset}
               onRequestClose={onRequestCloseEnhanced}
               onLongPress={onLongPress}
               delayLongPress={delayLongPress}

@@ -36,8 +36,11 @@ const SCREEN_HEIGHT = SCREEN.height;
 type Props = {
   imageSrc: ImageSource;
   onRequestClose: () => void;
-  onZoom: (scaled: boolean) => void;
+  onZoom: (scaled: boolean, scaleValue: number) => void;
   onLongPress: (image: ImageSource) => void;
+  zoomLevel?: number;
+  xOffset?: number;
+  yOffset?: number;
   delayLongPress: number;
   swipeToCloseEnabled?: boolean;
   doubleTapToZoomEnabled?: boolean;
@@ -49,6 +52,9 @@ const ImageItem = ({
   onRequestClose,
   onLongPress,
   delayLongPress,
+  zoomLevel,
+  xOffset,
+  yOffset,
   swipeToCloseEnabled = true,
   doubleTapToZoomEnabled = true,
 }: Props) => {
@@ -58,7 +64,14 @@ const ImageItem = ({
   const imageDimensions = useImageDimensions(imageSrc);
   const handleDoubleTap = useDoubleTapToZoom(scrollViewRef, scaled, SCREEN);
 
-  const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
+  const [translate, scale] = getImageTransform({
+    image: imageDimensions,
+    screen: SCREEN,
+    zoomLevel,
+    xOffset,
+    yOffset,
+  });
+  
   const scrollValueY = new Animated.Value(0);
   const scaleValue = new Animated.Value(scale || 1);
   const translateValue = new Animated.ValueXY(translate);
@@ -73,6 +86,7 @@ const ImageItem = ({
     translateValue,
     scaleValue
   );
+
   const imageStylesWithOpacity = { ...imagesStyles, opacity: imageOpacity };
 
   const onScrollEndDrag = useCallback(
@@ -80,7 +94,7 @@ const ImageItem = ({
       const velocityY = nativeEvent?.velocity?.y ?? 0;
       const scaled = nativeEvent?.zoomScale > 1;
 
-      onZoom(scaled);
+      onZoom(scaled, scale || 0);
       setScaled(scaled);
 
       if (
