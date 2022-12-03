@@ -27,7 +27,7 @@ import useRequestClose from "./hooks/useRequestClose";
 import { ImageSource } from "./@types";
 
 type Props = {
-  images: ImageSource[];
+  images: { src: ImageSource, width: number, height: number }[];
   keyExtractor?: (imageSrc: ImageSource, index: number) => string;
   imageIndex: number;
   visible: boolean;
@@ -38,6 +38,9 @@ type Props = {
   animationType?: ModalProps["animationType"];
   backgroundColor?: string;
   swipeToCloseEnabled?: boolean;
+  zoomLevel?: number;
+  xOffset?: number;
+  yOffset?: number;
   doubleTapToZoomEnabled?: boolean;
   delayLongPress?: number;
   HeaderComponent?: ComponentType<{ imageIndex: number }>;
@@ -55,6 +58,9 @@ function ImageViewing({
   keyExtractor,
   imageIndex,
   visible,
+  zoomLevel,
+  xOffset,
+  yOffset,
   onRequestClose,
   onLongPress = () => {},
   onImageIndexChange,
@@ -73,6 +79,10 @@ function ImageViewing({
   const [headerTransform, footerTransform, toggleBarsVisible] =
     useAnimatedComponents();
 
+  console.log(`images 2: `, images)
+
+  const imagesVirtualizedList = images.map(({ src }) => src)
+
   useEffect(() => {
     if (onImageIndexChange) {
       onImageIndexChange(currentImageIndex);
@@ -80,7 +90,7 @@ function ImageViewing({
   }, [currentImageIndex]);
 
   const onZoom = useCallback(
-    (isScaled: boolean) => {
+    (isScaled: boolean, scaleZoom: number) => {
       // @ts-ignore
       imageList?.current?.setNativeProps({ scrollEnabled: !isScaled });
       toggleBarsVisible(!isScaled);
@@ -115,7 +125,7 @@ function ImageViewing({
         </Animated.View>
         <VirtualizedList
           ref={imageList}
-          data={images}
+          data={imagesVirtualizedList}
           horizontal
           pagingEnabled
           windowSize={2}
@@ -124,17 +134,20 @@ function ImageViewing({
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
           initialScrollIndex={imageIndex}
-          getItem={(_, index) => images[index]}
-          getItemCount={() => images.length}
+          getItem={(_, index) => imagesVirtualizedList[index]}
+          getItemCount={() => imagesVirtualizedList.length}
           getItemLayout={(_, index) => ({
             length: SCREEN_WIDTH,
             offset: SCREEN_WIDTH * index,
             index,
           })}
-          renderItem={({ item: imageSrc }) => (
+          renderItem={({ index }) => (
             <ImageItem
               onZoom={onZoom}
-              imageSrc={imageSrc}
+              image={images[index]}
+              zoomLevel={zoomLevel}
+              xOffset={xOffset}
+              yOffset={yOffset}
               onRequestClose={onRequestCloseEnhanced}
               onLongPress={onLongPress}
               delayLongPress={delayLongPress}

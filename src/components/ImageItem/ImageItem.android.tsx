@@ -16,6 +16,8 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   NativeMethodsMixin,
+  Image,
+  View,
 } from "react-native";
 
 import useImageDimensions from "../../hooks/useImageDimensions";
@@ -24,6 +26,7 @@ import usePanResponder from "../../hooks/usePanResponder";
 import { getImageStyles, getImageTransform } from "../../utils";
 import { ImageSource } from "../../@types";
 import { ImageLoading } from "./ImageLoading";
+import SvgOverlay from "../SvgOverlay";
 
 const SWIPE_CLOSE_OFFSET = 75;
 const SWIPE_CLOSE_VELOCITY = 1.75;
@@ -32,34 +35,55 @@ const SCREEN_WIDTH = SCREEN.width;
 const SCREEN_HEIGHT = SCREEN.height;
 
 type Props = {
-  imageSrc: ImageSource;
+  image: { src: ImageSource, width: number, height: number };
   onRequestClose: () => void;
-  onZoom: (isZoomed: boolean) => void;
+  onZoom: (isZoomed: boolean, scaleZoom: number) => void;
   onLongPress: (image: ImageSource) => void;
   delayLongPress: number;
   swipeToCloseEnabled?: boolean;
   doubleTapToZoomEnabled?: boolean;
+  zoomLevel?: number;
+  xOffset?: number;
+  yOffset?: number;
 };
 
 const ImageItem = ({
-  imageSrc,
+  image,
   onZoom,
   onRequestClose,
   onLongPress,
   delayLongPress,
+  zoomLevel,
+  xOffset,
+  yOffset,
   swipeToCloseEnabled = true,
   doubleTapToZoomEnabled = true,
 }: Props) => {
   const imageContainer = useRef<ScrollView & NativeMethodsMixin>(null);
-  const imageDimensions = useImageDimensions(imageSrc);
-  const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
+  const imageDimensions = {
+    width: image.width,
+    height: image.height,
+  };
+  const imageSrc = image.src
+  console.log(`image: ${JSON.stringify({ imageDimensions, imageSrc }, null, 3)}`)
+  const theSvg = <SvgOverlay width={imageDimensions.width} height={imageDimensions.height} />
+
+  const [origTranslate, origScale] = getImageTransform({
+    image: imageDimensions,
+    screen: SCREEN,
+    xOffset,
+    yOffset,
+  });
+
   const scrollValueY = new Animated.Value(0);
   const [isLoaded, setLoadEnd] = useState(false);
 
   const onLoaded = useCallback(() => setLoadEnd(true), []);
   const onZoomPerformed = useCallback(
-    (isZoomed: boolean) => {
-      onZoom(isZoomed);
+    (isZoomed: boolean, scaleZoom: number) => {
+
+      console.log(`ImageItem onZoomPerformed: ${scaleZoom || 0}`)
+      onZoom(isZoomed, scaleZoom);
       if (imageContainer?.current) {
         imageContainer.current.setNativeProps({
           scrollEnabled: !isZoomed,
@@ -73,9 +97,16 @@ const ImageItem = ({
     onLongPress(imageSrc);
   }, [imageSrc, onLongPress]);
 
+  const initialScale = (origScale || 1) * (zoomLevel || 1)
+  const initialTranslate = origTranslate || { x: 0, y: 0 }
+
+  console.log(`Zoom x=${initialTranslate.x} y=${initialTranslate.y} zoom=${initialScale}`)
+
   const [panHandlers, scaleValue, translateValue] = usePanResponder({
-    initialScale: scale || 1,
-    initialTranslate: translate || { x: 0, y: 0 },
+    initialScale,
+    initialTranslate,
+    origScale: origScale || 1,
+    origTranslate: origTranslate || { x: 0, y: 0 },
     onZoom: onZoomPerformed,
     doubleTapToZoomEnabled,
     onLongPress: onLongPressHandler,
@@ -131,13 +162,23 @@ const ImageItem = ({
         onScrollEndDrag,
       })}
     >
-      <Animated.Image
-        {...panHandlers}
-        source={imageSrc}
-        style={imageStylesWithOpacity}
-        onLoad={onLoaded}
-      />
       {(!isLoaded || !imageDimensions) && <ImageLoading />}
+      <Animated.View
+         {...panHandlers}
+         style={{
+           ...imageStylesWithOpacity,
+           ...styles.overlayContainer,
+         }}
+       >
+         {(isLoaded && imageDimensions) && (
+          <View style={styles.overlay}>{theSvg}</View>
+         )}
+         <Animated.Image
+           source={imageSrc}
+           style={styles.baseImage}
+           onLoad={onLoaded}
+         />
+       </Animated.View>
     </ScrollView>
   );
 };
@@ -150,6 +191,20 @@ const styles = StyleSheet.create({
   imageScrollContainer: {
     height: SCREEN_HEIGHT * 2,
   },
+  overlayContainer: {
+    position: 'relative'
+  },
+  overlay: {
+    position: 'absolute',
+    zIndex: 100,
+  },
+  baseImage: {
+    left: 0,
+    top: 0,
+    zIndex: 99,
+    width: 500,
+    height: 250
+  }
 });
 
 export default React.memo(ImageItem);
